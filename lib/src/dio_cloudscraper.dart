@@ -63,6 +63,7 @@ class DioCloudscraper extends Cloudscraper {
     Map<String, String>? headers,
     Map<String, String>? data,
     bool allowRedirects = true,
+    Map<String, dynamic>? options,
   }) async {
     final reqHeaders = {..._headers, if (headers != null) ...headers};
     _applyCookies(url, reqHeaders);
@@ -72,18 +73,16 @@ class DioCloudscraper extends Cloudscraper {
       headers: reqHeaders,
       followRedirects: allowRedirects,
       validateStatus: (_) => true,
+      extra: {'cloudscraper': true},
     );
-
-    // Use a dio instance without interceptors to avoid recursive calls
-    final rawDio = dio.clone(interceptors: Interceptors());
 
     Response res;
     if (method.toUpperCase() == 'GET') {
-      res = await rawDio.getUri(url, options: opts);
+      res = await dio.getUri(url, options: opts);
     } else if (method.toUpperCase() == 'POST') {
-      res = await rawDio.postUri(url, data: data, options: opts);
+      res = await dio.postUri(url, data: data, options: opts);
     } else {
-      res = await rawDio.requestUri(url, options: opts, data: data);
+      res = await dio.requestUri(url, options: opts, data: data);
     }
 
     _saveCookies(url, res.headers);

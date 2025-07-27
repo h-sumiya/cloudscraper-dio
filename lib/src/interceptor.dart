@@ -32,7 +32,7 @@ class CloudScraperInterceptor extends Interceptor {
         'CloudScraperInterceptor: performing request ${options.method} ${options.uri}',
       );
     }
-    
+
     CfResponse resp = await _scraper.request(
       options.method,
       options.uri,
@@ -81,6 +81,9 @@ class CloudScraperInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
+    if (options.extra['cloudscraper'] == true) {
+      return handler.next(options);
+    }
     try {
       final response = await _perform(options);
       handler.resolve(response);
