@@ -10,13 +10,32 @@ JS の実行エンジンは入れ替え可能にしてください。(開発時�
 ```bash
 .
 ├── cloudscraper #参考にする Python リポジトリ
-├── src
-│   ├── cloudscraper_dio_base.dart
-│   └── interceptor.dart
-├── cloudscraper_dio.dart
+├── lib
+│   ├── src
+│   │   ├── interpre
+│   │   │   ├── base.dart
+│   │   │   ├── encapsulated.dart
+│   │   │   └── nodejs.dart
+│   │   ├── user_agent
+│   │   │   ├── baes.dart
+│   │   │   └── browsers.dart
+│   │   ├── utils
+│   │   │   └── html_unescape
+│   │   │       ├── src
+│   │   │       │   ├── data
+│   │   │       │   │   ├── named_chars_all.dart
+│   │   │       │   │   └── named_chars_basic.dart
+│   │   │       │   └── base.dart
+│   │   │       ├── html_unescape_small.dart
+│   │   │       └── html_unescape.dart
+│   │   ├── cloudflare_v2.dart
+│   │   ├── cloudflare_v3.dart
+│   │   ├── cloudscraper.dart
+│   │   ├── exceptions.dart
+│   │   └── interceptor.dart
+│   └── cloudscraper_dio.dart
 ├── test
-│ ├── cloudscraper_dio_test.dart
-│ └── live_test.dart #合格を目指すテスト
+│   └── live_test.dart
 ├── .gitignore
 ├── AGENTS.md
 ├── analysis_options.yaml

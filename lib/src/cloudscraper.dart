@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:cloudscraper_dio/src/interpre/base.dart';
-import 'package:html_unescape/html_unescape.dart';
+import 'package:cloudscraper_dio/src/utils/html_unescape/html_unescape.dart';
 
 /// ===== Exceptions =====
+
+final escape = HtmlUnescape();
 
 class CloudflareCode1020 implements Exception {
   final String message;
@@ -117,7 +119,7 @@ class Cloudflare {
 
   /// HTML entity unescape
   static String unescape(String htmlText) {
-    return HtmlUnescape().convert(htmlText);
+    return escape.convert(htmlText);
   }
 
   /// Helpers
