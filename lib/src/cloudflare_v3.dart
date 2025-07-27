@@ -38,10 +38,14 @@ class CloudflareV3 {
   // ---- detection ----
   static bool isV3Challenge(CfResponse resp) {
     try {
-      return _h(
-            resp.headers,
-            'Server',
-          ).toLowerCase().startsWith('cloudflare') &&
+      final server = _h(resp.headers, 'Server').toLowerCase();
+      final cfRay = _h(resp.headers, 'cf-ray');
+      final mitigated = _h(resp.headers, 'cf-mitigated');
+      final isCf =
+          server.startsWith('cloudflare') ||
+          cfRay.isNotEmpty ||
+          mitigated.toLowerCase() == 'challenge';
+      return isCf &&
           (resp.statusCode == 403 ||
               resp.statusCode == 429 ||
               resp.statusCode == 503) &&
@@ -52,6 +56,11 @@ class CloudflareV3 {
               ).hasMatch(resp.body) ||
               RegExp(
                 r'window\._cf_chl_ctx\s*=',
+                multiLine: true,
+                dotAll: true,
+              ).hasMatch(resp.body) ||
+              RegExp(
+                r'window\._cf_chl_opt\s*=',
                 multiLine: true,
                 dotAll: true,
               ).hasMatch(resp.body) ||
@@ -93,7 +102,16 @@ class CloudflareV3 {
         r'<form[^>]*id="challenge-form"[^>]*action="([^"]+)"',
         dotAll: true,
       ).firstMatch(resp.body);
-      if (mForm == null) {
+      String? action;
+      if (mForm != null) {
+        action = mForm.group(1);
+      } else {
+        final mFa = RegExp(r'fa:"([^"]+)"').firstMatch(resp.body);
+        if (mFa != null) {
+          action = mFa.group(1);
+        }
+      }
+      if (action == null) {
         throw CloudflareChallengeError(
           "Could not find Cloudflare v3 challenge form",
         );
@@ -108,7 +126,7 @@ class CloudflareV3 {
       return V3ChallengeInfo(
         ctxData: ctxData,
         optData: optData,
-        formAction: mForm.group(1)!,
+        formAction: action,
         vmScript: mScript?.group(1),
       );
     } catch (e) {
