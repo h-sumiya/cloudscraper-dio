@@ -75,7 +75,7 @@ class CloudflareV3 {
   }
 
   // ---- extractors ----
-  V3ChallengeInfo extractV3ChallengeData(CfResponse resp) {
+  Future<V3ChallengeInfo> extractV3ChallengeData(CfResponse resp) async {
     try {
       final mCtx = RegExp(
         r'window\._cf_chl_ctx\s*=\s*({.*?});',
@@ -93,9 +93,19 @@ class CloudflareV3 {
         } catch (_) {}
       }
       if (mOpt != null) {
+        final raw = mOpt.group(1)!;
+        if (cloudscraper.debug) {
+          // ignore: avoid_print
+          print('raw opt: ' + raw.substring(0, 60));
+        }
         try {
-          optData = json.decode(mOpt.group(1)!) as Map<String, dynamic>;
-        } catch (_) {}
+          optData = json.decode(raw) as Map<String, dynamic>;
+        } catch (_) {
+          // Fallback: very loose regex extraction for key:'value' pairs
+          for (final m in RegExp(r"(\w+):\s*'([^']*)'").allMatches(raw)) {
+            optData[m.group(1)!] = m.group(2)!;
+          }
+        }
       }
 
       final mForm = RegExp(
@@ -118,16 +128,32 @@ class CloudflareV3 {
       }
 
       // VM スクリプト（_cf_chl_enter 付近）をゆるく抽出
+      String? vmScript;
       final mScript = RegExp(
         r'<script[^>]*>\s*(.*?window\._cf_chl_enter.*?)</script>',
         dotAll: true,
       ).firstMatch(resp.body);
+      if (mScript != null) {
+        vmScript = mScript.group(1);
+      } else {
+        final mSrc = RegExp(
+          r'''a\.src\s*=\s*[\"']([^\"']+)[\"']''',
+        ).firstMatch(resp.body);
+        if (mSrc != null) {
+          final src = mSrc.group(1)!;
+          final scriptUrl = src.startsWith('http')
+              ? Uri.parse(src)
+              : resp.url.resolve(src);
+          final scriptResp = await cloudscraper.request('GET', scriptUrl);
+          vmScript = scriptResp.body;
+        }
+      }
 
       return V3ChallengeInfo(
         ctxData: ctxData,
         optData: optData,
         formAction: action,
-        vmScript: mScript?.group(1),
+        vmScript: vmScript,
       );
     } catch (e) {
       throw CloudflareChallengeError(
@@ -230,8 +256,16 @@ class CloudflareV3 {
     String challengeAnswer,
   ) {
     try {
+      String? rToken;
       final mR = RegExp(r'name="r"\s+value="([^"]+)"').firstMatch(resp.body);
-      if (mR == null) {
+      if (mR != null) {
+        rToken = mR.group(1);
+      } else {
+        // Fallback: try to derive from extracted challenge data
+        rToken =
+            info.optData['cRay']?.toString() ?? info.ctxData['r']?.toString();
+      }
+      if (rToken == null || rToken.isEmpty) {
         throw CloudflareChallengeError("Could not find 'r' token");
       }
 
@@ -248,7 +282,7 @@ class CloudflareV3 {
       }
 
       final payload = <String, String>{};
-      payload['r'] = mR.group(1)!;
+      payload['r'] = rToken;
       payload['jschl_answer'] = challengeAnswer;
 
       formFields.forEach((k, v) {
@@ -277,7 +311,11 @@ class CloudflareV3 {
         print('Handling Cloudflare v3 JavaScript VM challenge.');
       }
 
-      final info = extractV3ChallengeData(resp);
+      final info = await extractV3ChallengeData(resp);
+      if (cloudscraper.debug) {
+        // ignore: avoid_print
+        print('V3 optData keys: ' + info.optData.keys.take(5).join(','));
+      }
 
       // 待機（上限ガード）
       final ms = (delaySeconds * 1000).clamp(0, 15000).toInt();
