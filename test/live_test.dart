@@ -10,15 +10,11 @@ void main() {
     "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/117.0",
   ];
 
+  const userAgentNames = ["Android", "iPhone", "Windows", "Linux"];
+
   for (int i = 0; i < userAgents.length; i++) {
     final userAgent = userAgents[i];
-    final deviceType = i == 0
-        ? 'Android'
-        : i == 1
-        ? 'iPhone'
-        : i == 2
-        ? 'Windows'
-        : 'Linux';
+    final deviceType = userAgentNames[i];
 
     test(
       'LIVE: 実URLにアクセスして情報を取得できる ($deviceType)',
