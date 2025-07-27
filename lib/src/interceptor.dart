@@ -27,6 +27,12 @@ class CloudScraperInterceptor extends Interceptor {
       });
     }
 
+    if (_scraper.debug) {
+      print(
+        'CloudScraperInterceptor: performing request ${options.method} ${options.uri}',
+      );
+    }
+    
     CfResponse resp = await _scraper.request(
       options.method,
       options.uri,
