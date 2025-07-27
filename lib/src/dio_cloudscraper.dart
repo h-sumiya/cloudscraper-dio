@@ -74,13 +74,16 @@ class DioCloudscraper extends Cloudscraper {
       validateStatus: (_) => true,
     );
 
+    // Use a dio instance without interceptors to avoid recursive calls
+    final rawDio = dio.clone(interceptors: Interceptors());
+
     Response res;
     if (method.toUpperCase() == 'GET') {
-      res = await dio.getUri(url, options: opts);
+      res = await rawDio.getUri(url, options: opts);
     } else if (method.toUpperCase() == 'POST') {
-      res = await dio.postUri(url, data: data, options: opts);
+      res = await rawDio.postUri(url, data: data, options: opts);
     } else {
-      res = await dio.requestUri(url, options: opts, data: data);
+      res = await rawDio.requestUri(url, options: opts, data: data);
     }
 
     _saveCookies(url, res.headers);
